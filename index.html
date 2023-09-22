@@ -9,37 +9,45 @@
 <body>
     <div id="artists-container" class="artists-container"></div>
     <script>
-    // Fetch artists data
-    fetch('http://localhost:8080/artists')
-        .then(response => response.json())
-        .then(artists => {
-            let artistsContainer = document.getElementById('artists-container');
-            artists.forEach(artist => {
-                let artistDiv = document.createElement('div');
-                artistDiv.className = 'artist-card'; // Adding class to the artist div
-                artistDiv.id = 'artist-' + artist.id; // Adding id to the artist div for later reference
-                artistDiv.textContent = artist.name + ' (' + artist.year + ')';
-                artistsContainer.appendChild(artistDiv);
-            });
-            // Fetch locations data after artists data is fetched and processed
-            return fetch('http://localhost:8080/locations');
-        })
-        .then(response => response.json())
-        .then(locations => {
-            locations.forEach(location => {
-                let artistDiv = document.getElementById('artist-' + location.id);
-                if(artistDiv) {
-                    let lastConcertDiv = document.createElement('div');
-                    lastConcertDiv.textContent = 'Last Concert: ' + location.last_concert;
-                    artistDiv.appendChild(lastConcertDiv);
+        function fetchData(endpoint) {
+            return fetch(`http://localhost:8080${endpoint}`)
+                .then(response => response.json())
+                .catch(error => console.error(`Error fetching ${endpoint}:`, error));
+        }
+        
+        async function loadArtists() {
+            try {
+                let [artists, locations, dates, relations] = await Promise.all([
+                    fetchData('/artists'),
+                    fetchData('/locations'),
+                    fetchData('/dates'),
+                    fetchData('/relations'),
+                ]);
+                
+                let artistsContainer = document.getElementById('artists-container');
+                
+                relations.forEach(relation => {
+                    let artist = artists.find(a => a.id === relation.artist_id);
+                    let location = locations.find(l => l.id === relation.location_id);
+                    let date = dates.find(d => d.id === relation.date_id);
                     
-                    let upcomingConcertDiv = document.createElement('div');
-                    upcomingConcertDiv.textContent = 'Upcoming Concert: ' + location.upcoming_concert;
-                    artistDiv.appendChild(upcomingConcertDiv);
-                }
-            });
-        })
-        .catch(error => console.error('There was an error!', error));
+                    let artistDiv = document.createElement('div');
+                    artistDiv.className = 'artist-card';
+                    
+                    artistDiv.innerHTML = `
+                        <h2>${artist.name} (${artist.year})</h2>
+                        <p><strong>Last Concert:</strong> ${location.last_concert} on ${date.last_concert}</p>
+                        <p><strong>Upcoming Concert:</strong> ${location.upcoming_concert} on ${date.upcoming_concert}</p>
+                    `;
+                    
+                    artistsContainer.appendChild(artistDiv);
+                });
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+        
+        loadArtists();
     </script>
 </body>
 </html>
