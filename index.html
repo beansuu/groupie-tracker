@@ -1,21 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>d
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
     <title>Groupie-Tracker</title>
 </head>
 <body>
-    <div id="artists"></div>
+    <div id="artists-container" class="artists-container"></div>
     <script>
     fetch('http://localhost:8080/artists')
         .then(response => response.json())
         .then(data => {
-            let aristsDiv = document.getElementById('artists');
-            data.forEach(arists => {
+            let artistsContainer = document.getElementById('artists-container');
+            data.forEach(artist => {
                 let artistDiv = document.createElement('div');
+                artistDiv.className = 'artist-card'; // Added class to the artist div
                 artistDiv.textContent = artist.name + ' (' + artist.year + ')';
-                artistsDiv.appendChild(artistDiv);
+                artistsContainer.appendChild(artistDiv);
             });
         })
         .catch(error => console.error('There was an error!', error));
