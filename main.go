@@ -15,6 +15,12 @@ type Artist struct {
 	FirstAlbumDate string `json:"first_album_date"`
 }
 
+type Location struct {
+	ID              string `json:"id"`
+	LastConcert     string `json:"last_concert"`
+	UpcomingConcert string `json:"upcoming_concert"`
+}
+
 // artists slice
 var artists = []Artist{
 	{
@@ -26,6 +32,14 @@ var artists = []Artist{
 	},
 }
 
+var locations = []Location{
+	{
+		ID:              "1",
+		LastConcert:     "New York",
+		UpcomingConcert: "Los Angeles",
+	},
+}
+
 func main() {
 	// Serve static assets like CSS
 	fs := http.FileServer(http.Dir("static"))
@@ -33,6 +47,9 @@ func main() {
 
 	// API route for artists
 	http.HandleFunc("/artists", artistsHandler)
+
+	// API route for locations
+	http.HandleFunc("/locations", locationsHandler)
 
 	// Route for home page
 	http.HandleFunc("/", homeHandler)
@@ -60,4 +77,17 @@ func artistsHandler(w http.ResponseWriter, r *http.Request) {
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	// Serve the index.html file
 	http.ServeFile(w, r, "index.html")
+}
+
+func locationsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(locations); err != nil {
+		http.Error(w, "Failed to encode data", http.StatusInternalServerError)
+	}
 }

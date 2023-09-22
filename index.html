@@ -9,15 +9,34 @@
 <body>
     <div id="artists-container" class="artists-container"></div>
     <script>
+    // Fetch artists data
     fetch('http://localhost:8080/artists')
         .then(response => response.json())
-        .then(data => {
+        .then(artists => {
             let artistsContainer = document.getElementById('artists-container');
-            data.forEach(artist => {
+            artists.forEach(artist => {
                 let artistDiv = document.createElement('div');
-                artistDiv.className = 'artist-card'; // Added class to the artist div
+                artistDiv.className = 'artist-card'; // Adding class to the artist div
+                artistDiv.id = 'artist-' + artist.id; // Adding id to the artist div for later reference
                 artistDiv.textContent = artist.name + ' (' + artist.year + ')';
                 artistsContainer.appendChild(artistDiv);
+            });
+            // Fetch locations data after artists data is fetched and processed
+            return fetch('http://localhost:8080/locations');
+        })
+        .then(response => response.json())
+        .then(locations => {
+            locations.forEach(location => {
+                let artistDiv = document.getElementById('artist-' + location.id);
+                if(artistDiv) {
+                    let lastConcertDiv = document.createElement('div');
+                    lastConcertDiv.textContent = 'Last Concert: ' + location.last_concert;
+                    artistDiv.appendChild(lastConcertDiv);
+                    
+                    let upcomingConcertDiv = document.createElement('div');
+                    upcomingConcertDiv.textContent = 'Upcoming Concert: ' + location.upcoming_concert;
+                    artistDiv.appendChild(upcomingConcertDiv);
+                }
             });
         })
         .catch(error => console.error('There was an error!', error));
