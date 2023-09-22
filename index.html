@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>d
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Groupie-Tracker</title>
+</head>
+<body>
+    <div id="artists"></div>
+    <script>
+    fetch('http://localhost:8080/artists')
+        .then(response => response.json())
+        .then(data => {
+            let aristsDiv = document.getElementById('artists');
+            data.forEach(arists => {
+                let artistDiv = document.createElement('div');
+                artistDiv.textContent = artist.name + ' (' + artist.year + ')';
+                artistsDiv.appendChild(artistDiv);
+            });
+        })
+        .catch(error => console.error('There was an error!', error));
+    </script>
+</body>
+</html>
