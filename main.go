@@ -2,146 +2,123 @@ package main
 
 import (
 	"encoding/json"
+	"html/template"
 	"log"
 	"net/http"
 )
 
-// Artist struct
 type Artist struct {
-	ID             string `json:"id"`
-	Name           string `json:"name"`
-	Year           int    `json:"year"`
-	ImageURL       string `json:"image_url"`
-	FirstAlbumDate string `json:"first_album_date"`
+	ID           int      `json:"id"`
+	Image        string   `json:"image"`
+	Name         string   `json:"name"`
+	Members      []string `json:"members"`
+	CreationDate int      `json:"creationDate"`
+	FirstAlbum   string   `json:"firstAlbum"`
+	Locations    string   `json:"locations"`
+	ConcertDates string   `json:"concertDates"`
+	Relations    string   `json:"relations"`
 }
 
-type Location struct {
-	ID              string `json:"id"`
-	LastConcert     string `json:"last_concert"`
-	UpcomingConcert string `json:"upcoming_concert"`
+type Locations struct {
+	ID           int      `json:"id"`
+	Locations    []string `json:"locations"`
+	ConcertDates string   `json:"dates"`
 }
 
-type Date struct {
-	ID              string `json:"id"`
-	LastConcert     string `json:"last_concert"`
-	UpcomingConcert string `json:"upcoming_concert"`
+type Dates struct {
+	ID    int      `json:"id"`
+	Dates []string `json:"dates"`
 }
 
-type Relation struct {
-	ArtistID   string `json:"artist_id"`
-	LocationID string `json:"location_id"`
-	DateID     string `json:"date_id"`
+type Relations struct {
+	ID             int                 `json:"id"`
+	DatesLocations map[string][]string `json:"datesLocations"`
 }
 
-// artists slice
-var artists = []Artist{
-	{
-		ID:             "1",
-		Name:           "Band 1",
-		Year:           2000,
-		ImageURL:       "http://example.com/image1.jpg",
-		FirstAlbumDate: "2001-01-01",
-	},
+type ArtistDetails struct {
+	Artist    Artist
+	Locations Locations
+	Dates     Dates
+	Relations Relations
 }
 
-var locations = []Location{
-	{
-		ID:              "1",
-		LastConcert:     "New York",
-		UpcomingConcert: "Los Angeles",
-	},
-}
-
-var dates = []Date{
-	{
-		ID:              "1",
-		LastConcert:     "2022-09-15",
-		UpcomingConcert: "2023-10-20",
-	},
-}
-
-var relations = []Relation{
-	{
-		ArtistID:   "1",
-		LocationID: "1",
-		DateID:     "1",
-	},
-}
+var tmpl = template.Must(template.ParseFiles("index.html"))
 
 func main() {
-	// Serve static assets like CSS
-	fs := http.FileServer(http.Dir("static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
-
-	// API route for artists
-	http.HandleFunc("/artists", artistsHandler)
-
-	// API route for locations
-	http.HandleFunc("/locations", locationsHandler)
-
-	// Route for home page
-	http.HandleFunc("/", homeHandler)
-
-	http.HandleFunc("/dates", datesHandler)
-
-	http.HandleFunc("/relations", relationsHandler)
-
-	// Start the server
+	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/submit", submitHandler)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func artistsHandler(w http.ResponseWriter, r *http.Request) {
-	// Set the content type to JSON
-	w.Header().Set("Content-Type", "application/json")
-
-	// Check for correct method
-	if r.Method != "GET" {
+func submitHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+	// Handle form data here
+	w.Write([]byte("Form Submitted!"))
+}
 
-	// Encode and send the artists data
-	if err := json.NewEncoder(w).Encode(artists); err != nil {
-		http.Error(w, "Failed to encode data", http.StatusInternalServerError)
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	resp, err := http.Get("https://groupietrackers.herokuapp.com/api/artists")
+	if err != nil {
+		http.Error(w, "Unable to get data", http.StatusInternalServerError)
+		return
 	}
-}
+	defer resp.Body.Close()
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
-	// Serve the index.html file
-	http.ServeFile(w, r, "index.html")
-}
-
-func locationsHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	var artists []Artist
+	if err := json.NewDecoder(resp.Body).Decode(&artists); err != nil {
+		http.Error(w, "Error decoding response body", http.StatusInternalServerError)
 		return
 	}
 
-	if err := json.NewEncoder(w).Encode(locations); err != nil {
-		http.Error(w, "Failed to encode data", http.StatusInternalServerError)
+	var details []ArtistDetails
+	for _, artist := range artists {
+		locations := getLocations(artist.Locations)
+		dates := getDates(artist.ConcertDates)
+		relations := getRelations(artist.Relations)
+
+		details = append(details, ArtistDetails{artist, locations, dates, relations})
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "index.html", details); err != nil {
+		http.Error(w, "Error executing template", http.StatusInternalServerError)
 	}
 }
 
-func datesHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
+func getLocations(url string) Locations {
+	var loc Locations
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Println("Error getting locations:", err)
+		return loc
 	}
-	if err := json.NewEncoder(w).Encode(dates); err != nil {
-		http.Error(w, "Failed to encode data", http.StatusInternalServerError)
-	}
+	defer resp.Body.Close()
+	json.NewDecoder(resp.Body).Decode(&loc)
+	return loc
 }
 
-func relationsHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
+func getDates(url string) Dates {
+	var d Dates
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Println("Error getting dates:", err)
+		return d
 	}
-	if err := json.NewEncoder(w).Encode(relations); err != nil {
-		http.Error(w, "Failed to encode data", http.StatusInternalServerError)
+	defer resp.Body.Close()
+	json.NewDecoder(resp.Body).Decode(&d)
+	return d
+}
+
+func getRelations(url string) Relations {
+	var rel Relations
+	resp, err := http.Get(url)
+	if err != nil {
+		log.Println("Error getting relations:", err)
+		return rel
 	}
+	defer resp.Body.Close()
+	json.NewDecoder(resp.Body).Decode(&rel)
+	return rel
 }

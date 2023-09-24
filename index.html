@@ -1,53 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/static/style.css">
-    <title>Groupie-Tracker</title>
-</head>
-<body>
-    <div id="artists-container" class="artists-container"></div>
-    <script>
-        function fetchData(endpoint) {
-            return fetch(`http://localhost:8080${endpoint}`)
-                .then(response => response.json())
-                .catch(error => console.error(`Error fetching ${endpoint}:`, error));
-        }
-        
-        async function loadArtists() {
-            try {
-                let [artists, locations, dates, relations] = await Promise.all([
-                    fetchData('/artists'),
-                    fetchData('/locations'),
-                    fetchData('/dates'),
-                    fetchData('/relations'),
-                ]);
-                
-                let artistsContainer = document.getElementById('artists-container');
-                
-                relations.forEach(relation => {
-                    let artist = artists.find(a => a.id === relation.artist_id);
-                    let location = locations.find(l => l.id === relation.location_id);
-                    let date = dates.find(d => d.id === relation.date_id);
-                    
-                    let artistDiv = document.createElement('div');
-                    artistDiv.className = 'artist-card';
-                    
-                    artistDiv.innerHTML = `
-                        <h2>${artist.name} (${artist.year})</h2>
-                        <p><strong>Last Concert:</strong> ${location.last_concert} on ${date.last_concert}</p>
-                        <p><strong>Upcoming Concert:</strong> ${location.upcoming_concert} on ${date.upcoming_concert}</p>
-                    `;
-                    
-                    artistsContainer.appendChild(artistDiv);
-                });
-            } catch (error) {
-                console.error('Error loading data:', error);
-            }
-        }
-        
-        loadArtists();
-    </script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Groupie Trackers</title>
+  </head>
+  <body>
+    <h1>Artists</h1>
+    <table>
+      <tr>
+        <th>Name</th>
+        <th>Image</th>
+        <th>Members</th>
+        <th>Creation Date</th>
+        <th>First Album</th>
+        <th>Locations</th>
+        <th>Concert Dates</th>
+        <th>Relations</th>
+      </tr>
+      {{range .}}
+      <tr>
+        <td>{{.Artist.Name}}</td>
+        <td><img src="{{.Artist.Image}}" alt="{{.Artist.Name}}" width="100" /></td>
+        <td>{{range .Artist.Members}}{{.}}, {{end}}</td>
+        <td>{{.Artist.CreationDate}}</td>
+        <td>{{.Artist.FirstAlbum}}</td>
+        <td>{{range .Locations.Locations}}{{.}}<br>{{end}}</td>
+        <td>{{range .Dates.Dates}}{{.}}<br>{{end}}</td>
+        <td>
+            {{range $location, $dates := .Relations.DatesLocations}}
+                {{$location}}:
+                {{range $dates}}
+                    {{.}}<br>
+                {{end}}
+            {{end}}
+        </td>
+      </tr>
+      {{end}}
+    </table>
+    <form id="myForm">
+      <!-- Form fields here -->
+      <button type="submit">Submit</button>
+  </form>
+
+  <script>
+      document.addEventListener('DOMContentLoaded', (event) => {
+          document.getElementById('myForm').addEventListener('submit', function (e) {
+              e.preventDefault();
+
+              fetch('/submit', {
+                  method: 'POST',
+                  body: new FormData(this)
+              })
+              .then(response => response.text())
+              .then(data => alert(data));
+          });
+      });
+  </script>
+  </body>
 </html>
