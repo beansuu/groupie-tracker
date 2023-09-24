@@ -60,6 +60,10 @@ func submitHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
 	resp, err := http.Get("https://groupietrackers.herokuapp.com/api/artists")
 	if err != nil {
 		http.Error(w, "Unable to get data", http.StatusInternalServerError)
