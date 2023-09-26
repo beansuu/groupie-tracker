@@ -1,0 +1,72 @@
+/* Reset some default styles in browsers */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #f4f4f4;
+  line-height: 1.6em;
+  color: #333;
+}
+
+.container {
+  width: 50%;
+  margin: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 15px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+}
+
+#searchBar {
+  width: calc(100% - 20px);
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  margin: 10px;
+  font-size: 16px;
+}
+
+#suggestions {
+  width: calc(100% - 20px);
+  margin: 10px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  max-height: 150px;
+  overflow-y: auto;
+  position: absolute;
+  background-color: #ffffff;
+  z-index: 1000;
+}
+
+#suggestions div {
+  padding: 10px;
+  cursor: pointer;
+  border-bottom: 1px solid #ddd;
+}
+
+#suggestions div:hover {
+  background-color: #f0f0f0;
+}
+
+/* Apply styles to even rows */
+tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 5px;
+}
+
