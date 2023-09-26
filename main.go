@@ -43,10 +43,12 @@ type ArtistDetails struct {
 }
 
 var tmpl = template.Must(template.ParseFiles("index.html"))
+var artists []Artist
 
 func main() {
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/submit", submitHandler)
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
@@ -71,7 +73,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	var artists []Artist
+	artists = []Artist{}
 	if err := json.NewDecoder(resp.Body).Decode(&artists); err != nil {
 		http.Error(w, "Error decoding response body", http.StatusInternalServerError)
 		return

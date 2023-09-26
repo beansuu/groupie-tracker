@@ -2,11 +2,17 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="stylesheet" href="static/style.css">
     <title>Groupie Trackers</title>
   </head>
   <body>
     <h1>Artists</h1>
-    <table>
+
+    <input type="text" id="searchBar" placeholder="Type to search..."/>
+
+  </form>
+  
+    <table id="artistTable">
       <tr>
         <th>Name</th>
         <th>Image</th>
@@ -18,7 +24,7 @@
         <th>Relations</th>
       </tr>
       {{range .}}
-      <tr>
+      <tr class="searchable">
         <td>{{.Artist.Name}}</td>
         <td><img src="{{.Artist.Image}}" alt="{{.Artist.Name}}" width="100" /></td>
         <td>{{range .Artist.Members}}{{.}}, {{end}}</td>
@@ -37,24 +43,6 @@
       </tr>
       {{end}}
     </table>
-    <form id="myForm">
-      <!-- Form fields here -->
-      <button type="submit">Submit</button>
-  </form>
-
-  <script>
-      document.addEventListener('DOMContentLoaded', (event) => {
-          document.getElementById('myForm').addEventListener('submit', function (e) {
-              e.preventDefault();
-
-              fetch('/submit', {
-                  method: 'POST',
-                  body: new FormData(this)
-              })
-              .then(response => response.text())
-              .then(data => alert(data));
-          });
-      });
-  </script>
+    <script src="static/script.js"></script>
   </body>
 </html>
