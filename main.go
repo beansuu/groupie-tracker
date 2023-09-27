@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type Artist struct {
@@ -101,7 +102,16 @@ func getLocations(url string) Locations {
 		return loc
 	}
 	defer resp.Body.Close()
-	json.NewDecoder(resp.Body).Decode(&loc)
+	if err := json.NewDecoder(resp.Body).Decode(&loc); err != nil {
+		log.Println("Error decoding locations:", err)
+		return loc
+	}
+
+	for i, location := range loc.Locations {
+		location = strings.Replace(location, "-", ", ", -1)        // Replace - with ,
+		loc.Locations[i] = strings.Replace(location, "_", " ", -1) // Replace _ with space
+	}
+
 	return loc
 }
 
@@ -125,6 +135,24 @@ func getRelations(url string) Relations {
 		return rel
 	}
 	defer resp.Body.Close()
-	json.NewDecoder(resp.Body).Decode(&rel)
+	if err := json.NewDecoder(resp.Body).Decode(&rel); err != nil {
+		log.Println("Error decoding relations:", err)
+		return rel
+	}
+
+	// New map to store the transformed keys
+	transformedMap := make(map[string][]string)
+
+	// Iterate over the original map
+	for k, v := range rel.DatesLocations {
+		// Transform the key (location string)
+		transformedKey := strings.Replace(k, "-", "-", -1)             // Replace - with ,
+		transformedKey = strings.Replace(transformedKey, "_", " ", -1) // Replace _ with space
+
+		// Assign the value from the original map to the new key in the transformed map
+		transformedMap[transformedKey] = v
+	}
+
+	rel.DatesLocations = transformedMap
 	return rel
 }
