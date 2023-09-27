@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -26,6 +27,10 @@ type Locations struct {
 	ConcertDates string   `json:"dates"`
 }
 
+type LocationsData struct {
+	Index []Locations `json:"index"`
+}
+
 type Dates struct {
 	ID    int      `json:"id"`
 	Dates []string `json:"dates"`
@@ -37,10 +42,23 @@ type Relations struct {
 }
 
 type ArtistDetails struct {
-	Artist    Artist
-	Locations Locations
-	Dates     Dates
-	Relations Relations
+	Artist   Artist
+	Members  string
+	Concerts string
+}
+
+type Item struct {
+	ID       int                 `json:"id"`
+	Concerts map[string][]string `json:"datesLocations"`
+}
+
+type ConcertData struct {
+	Index []Item `json:"index"`
+}
+
+type TemplateData struct {
+	Artists     []ArtistDetails
+	Suggestions []string
 }
 
 var tmpl = template.Must(template.ParseFiles("index.html"))
@@ -80,79 +98,73 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var details []ArtistDetails
-	for _, artist := range artists {
-		locations := getLocations(artist.Locations)
-		dates := getDates(artist.ConcertDates)
-		relations := getRelations(artist.Relations)
-
-		details = append(details, ArtistDetails{artist, locations, dates, relations})
+	resp, err = http.Get("https://groupietrackers.herokuapp.com/api/relation")
+	concertData := ConcertData{}
+	if err := json.NewDecoder(resp.Body).Decode(&concertData); err != nil {
+		http.Error(w, "Error decoding response body", http.StatusInternalServerError)
+		return
 	}
 
-	if err := tmpl.ExecuteTemplate(w, "index.html", details); err != nil {
+	var details []ArtistDetails
+	for _, artist := range artists {
+		members := strings.Join(artist.Members, ", ")
+		concerts := parseConcerts(concertData.Index[artist.ID-1].Concerts)
+
+		details = append(details, ArtistDetails{artist, members, concerts})
+	}
+	data := TemplateData{
+		Artists:     details,
+		Suggestions: getSuggestions(artists),
+	}
+	if err := tmpl.ExecuteTemplate(w, "index.html", data); err != nil {
 		http.Error(w, "Error executing template", http.StatusInternalServerError)
 	}
 }
 
-func getLocations(url string) Locations {
-	var loc Locations
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Println("Error getting locations:", err)
-		return loc
+func parseConcerts(concerts map[string][]string) string {
+	str := ""
+	for location, dates := range concerts {
+		for _, date := range dates {
+			formatted := fmt.Sprintf("%s: %s", date, formatLocation(location))
+			str += formatted + "\n"
+		}
 	}
-	defer resp.Body.Close()
-	if err := json.NewDecoder(resp.Body).Decode(&loc); err != nil {
-		log.Println("Error decoding locations:", err)
-		return loc
-	}
-
-	for i, location := range loc.Locations {
-		location = strings.Replace(location, "-", ", ", -1)        // Replace - with ,
-		loc.Locations[i] = strings.Replace(location, "_", " ", -1) // Replace _ with space
-	}
-
-	return loc
+	return str
 }
 
-func getDates(url string) Dates {
-	var d Dates
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Println("Error getting dates:", err)
-		return d
+func getSuggestions(artists []Artist) []string {
+	suggestions := make(map[string]int)
+	resp, _ := http.Get("https://groupietrackers.herokuapp.com/api/locations")
+	locationData := LocationsData{}
+	if err := json.NewDecoder(resp.Body).Decode(&locationData); err == nil {
+		for _, location := range locationData.Index {
+			for _, loc := range location.Locations {
+				formatted := formatLocation(loc)
+				suggestions[formatted] = 1
+			}
+
+		}
 	}
-	defer resp.Body.Close()
-	json.NewDecoder(resp.Body).Decode(&d)
-	return d
+	for _, artist := range artists {
+		suggestions[artist.Name] = 1
+		for _, member := range artist.Members {
+			suggestions[member] = 1
+		}
+	}
+
+	fmt.Println(suggestions)
+	var suggs []string
+	for k := range suggestions {
+		suggs = append(suggs, k)
+	}
+	return suggs
 }
 
-func getRelations(url string) Relations {
-	var rel Relations
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Println("Error getting relations:", err)
-		return rel
+func formatLocation(loc string) string {
+	parts := strings.Split(loc, "-")
+	for i := 0; i < len(parts); i++ {
+		parts[i] = strings.Title(parts[i])
 	}
-	defer resp.Body.Close()
-	if err := json.NewDecoder(resp.Body).Decode(&rel); err != nil {
-		log.Println("Error decoding relations:", err)
-		return rel
-	}
-
-	// New map to store the transformed keys
-	transformedMap := make(map[string][]string)
-
-	// Iterate over the original map
-	for k, v := range rel.DatesLocations {
-		// Transform the key (location string)
-		transformedKey := strings.Replace(k, "-", "-", -1)             // Replace - with ,
-		transformedKey = strings.Replace(transformedKey, "_", " ", -1) // Replace _ with space
-
-		// Assign the value from the original map to the new key in the transformed map
-		transformedMap[transformedKey] = v
-	}
-
-	rel.DatesLocations = transformedMap
-	return rel
+	formatted := strings.Join(parts, ", ")
+	return formatted
 }

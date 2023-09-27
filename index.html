@@ -9,8 +9,12 @@
     <h1>Artists</h1>
 
     <!-- ... other parts of the document ... -->
-<input type="text" id="searchBar" placeholder="Type to search..." />
-<div id="suggestions"></div>
+<input type="text" id="searchBar" placeholder="Type to search..." list="suggestionsList"/>
+<datalist id="suggestionsList">
+  {{range .Suggestions}}
+  <option value="{{.}}"/>
+  {{end}}
+</datalist>
 <!-- ... other parts of the document ... -->
 
 
@@ -23,27 +27,16 @@
         <th>Members</th>
         <th>Creation Date</th>
         <th>First Album</th>
-        <th>Locations</th>
-        <th>Concert Dates</th>
-        <th>Relations</th>
+        <th>Concerts</th>
       </tr>
-      {{range .}}
+      {{range .Artists}}
       <tr class="searchable">
         <td>{{.Artist.Name}}</td>
         <td><img src="{{.Artist.Image}}" alt="{{.Artist.Name}}" width="100" /></td>
-        <td>{{range .Artist.Members}}{{.}}, {{end}}</td>
+        <td>{{.Members}}</td>
         <td>{{.Artist.CreationDate}}</td>
         <td>{{.Artist.FirstAlbum}}</td>
-        <td>{{range .Locations.Locations}}{{.}}<br>{{end}}</td>
-        <td>{{range .Dates.Dates}}{{.}}<br>{{end}}</td>
-        <td>
-            {{range $location, $dates := .Relations.DatesLocations}}
-                {{$location}}:
-                {{range $dates}}
-                    {{.}}<br>
-                {{end}}
-            {{end}}
-        </td>
+        <td><pre>{{.Concerts}}</pre></td>
       </tr>
       {{end}}
     </table>
