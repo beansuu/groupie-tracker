@@ -1,4 +1,4 @@
-# Instructions for audit [here](https://github.com/01-edu/public/tree/master/subjects/groupie-tracker/audit)
+# Instructions for audit [here](https://github.com/01-edu/public/tree/master/subjects/groupie-tracker/search-bar/audit)
 
 ```go run main.go``` to run the page and then open http://localhost:8080/ in your browser.
 
